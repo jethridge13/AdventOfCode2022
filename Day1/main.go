@@ -1,35 +1,15 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
-	"os"
 	"sort"
 	"strconv"
+
+	"github.com/jethridge13/AdventOfCode2022/util"
 )
 
-func getFileScanner(path string) *bufio.Scanner {
-	f, err := os.Open(path)
-	if err != nil {
-		panic(err)
-	}
-	scanner := bufio.NewScanner(f)
-	scanner.Split(bufio.ScanLines)
-	return scanner
-}
-
-func findMax(s []int) int {
-	max := 0
-	for _, i := range s {
-		if i > max {
-			max = i
-		}
-	}
-	return max
-}
-
 func groupByCalories(path string) []int {
-	scanner := getFileScanner(path)
+	scanner := util.GetFileScanner(path)
 	cals := make([]int, 0)
 	count := 0
 	for scanner.Scan() {
@@ -51,7 +31,7 @@ func groupByCalories(path string) []int {
 
 func part1(path string) int {
 	cals := groupByCalories(path)
-	return findMax(cals)
+	return util.FindMax(cals)
 }
 
 func part2(path string) int {
