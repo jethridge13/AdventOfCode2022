@@ -167,72 +167,80 @@ func moveGrid(grid *[][]string, h []int, t []int, dir string, dis int) {
 	}
 }
 
+func upCheck(snake [][]int, head []int, i int) bool {
+	return snake[i][0]-head[0] > 1 || (snake[i][1] == head[1] && snake[i][0]-head[0] > 1)
+}
+
+func leftCheck(snake [][]int, head []int, i int) bool {
+	return snake[i][1]-head[1] > 1 || (snake[i][0] == head[0] && snake[i][1]-head[1] > 1)
+}
+
+func downCheck(snake [][]int, head []int, i int) bool {
+	return head[0]-snake[i][0] > 1 || (snake[i][1] == head[1] && head[0]-snake[i][0] > 1)
+}
+
+func rightCheck(snake [][]int, head []int, i int) bool {
+	return head[1]-snake[i][1] > 1 || (snake[i][0] == head[0] && head[1]-snake[i][1] > 1)
+}
+
 func moveGridTail(grid *[][]string, snake [][]int, dir string, dis int) {
-	switch dir {
-	case "U":
-		for snake[0][0]-dis < 0 {
-			expandGridTail(grid, snake)
+	// TODO The tail checking "works" but does not check diagonals in the same way as the prompt
+	moved := 0
+	for moved < dis {
+		switch dir {
+		case "U":
+			for snake[0][0]-dis < 0 {
+				expandGridTail(grid, snake)
+			}
+			snake[0][0] -= 1
+			moved += 1
+		case "R":
+			for snake[0][1]+dis >= len(*grid) {
+				expandGridTail(grid, snake)
+			}
+			snake[0][1] += 1
+			moved += 1
+		case "D":
+			for snake[0][0]+dis >= len(*grid) {
+				expandGridTail(grid, snake)
+			}
+			snake[0][0] += 1
+			moved += 1
+		case "L":
+			for snake[0][1]-dis < 0 {
+				expandGridTail(grid, snake)
+			}
+			snake[0][1] -= 1
+			moved += 1
 		}
-		snake[0][0] -= dis
+		// Catch up snake tail
 		for i := 1; i < len(snake); i++ {
-			for snake[i][0]-snake[i-1][0] > 1 {
-				if snake[i-1][1] != snake[i][1] {
-					snake[i][1] += snake[i-1][1] - snake[i][1]
+			head := snake[i-1]
+			// Check distance up, right, down, left
+			up := upCheck(snake, head, i)
+			left := leftCheck(snake, head, i)
+			down := downCheck(snake, head, i)
+			right := rightCheck(snake, head, i)
+			for up || left || down || right {
+				if up {
+					snake[i][0] -= 1
+					up = upCheck(snake, head, i)
 				}
-				snake[i][0] -= 1
-				if i == len(snake)-1 {
-					(*grid)[snake[i][0]][snake[i][1]] = "#"
+				if left {
+					snake[i][1] -= 1
+					left = leftCheck(snake, head, i)
+				}
+				if down {
+					snake[i][0] += 1
+					down = downCheck(snake, head, i)
+				}
+				if right {
+					snake[i][1] += 1
+					right = rightCheck(snake, head, i)
 				}
 			}
 		}
-	case "R":
-		for snake[0][1]+dis >= len(*grid) {
-			expandGridTail(grid, snake)
-		}
-		snake[0][1] += dis
-		for i := 1; i < len(snake); i++ {
-			for snake[i-1][1]-snake[i][1] > 1 {
-				if snake[i-1][0] != snake[i][0] {
-					snake[i][0] += snake[i-1][0] - snake[i][0]
-				}
-				snake[i][1] += 1
-				if i == len(snake)-1 {
-					(*grid)[snake[i][0]][snake[i][1]] = "#"
-				}
-			}
-		}
-	case "D":
-		for snake[0][0]+dis >= len(*grid) {
-			expandGridTail(grid, snake)
-		}
-		snake[0][0] += dis
-		for i := 1; i < len(snake); i++ {
-			for snake[i-1][0]-snake[i][0] > 1 {
-				if snake[i-1][1] != snake[i][1] {
-					snake[i][1] += snake[i-1][1] - snake[i][1]
-				}
-				snake[i][0] += 1
-				if i == len(snake)-1 {
-					(*grid)[snake[i][0]][snake[i][1]] = "#"
-				}
-			}
-		}
-	case "L":
-		for snake[0][1]-dis < 0 {
-			expandGridTail(grid, snake)
-		}
-		snake[0][1] -= dis
-		for i := 1; i < len(snake); i++ {
-			for snake[i][1]-snake[i-1][1] > 1 {
-				if snake[i-1][0] != snake[i][0] {
-					snake[i][0] += snake[i-1][0] - snake[i][0]
-				}
-				snake[i][1] -= 1
-				if i == len(snake)-1 {
-					(*grid)[snake[i][0]][snake[i][1]] = "#"
-				}
-			}
-		}
+		printGridPart2(*grid, snake)
 	}
 }
 
