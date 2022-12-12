@@ -102,11 +102,12 @@ func playMonkeys(monkeys []Monkey) {
 	}
 }
 
-func playMonkeys2(monkeys []Monkey) {
+func playMonkeys2(monkeys []Monkey, lcm int) {
 	for i, monkey := range monkeys {
 		for _, item := range monkey.items {
 			// Inspect and throw item
 			monkeys[i].inspectCount += 1
+			item = item % lcm
 			item = operate(item, monkey.operation)
 			var monkeyThrow int
 			if item%monkey.test == 0 {
@@ -133,14 +134,12 @@ func part1(path string) int {
 
 func part2(path string) int {
 	monkeys := generateMonkeys(path)
+	lcm := 1
+	for _, monkey := range monkeys {
+		lcm *= monkey.test
+	}
 	for i := 0; i < 10000; i++ {
-		playMonkeys2(monkeys)
-		if i == 1-1 || i == 20-1 || i == 1000-1 || i == 2000-1 {
-			fmt.Println("ROUND: ", i)
-			for _, monkey := range monkeys {
-				fmt.Println(monkey.inspectCount)
-			}
-		}
+		playMonkeys2(monkeys, lcm)
 	}
 	sort.Slice(monkeys, func(i, j int) bool {
 		return monkeys[i].inspectCount > monkeys[j].inspectCount
@@ -149,9 +148,9 @@ func part2(path string) int {
 }
 
 func main() {
-	file := "example.txt"
+	file := "input.txt"
 	// Part 1: 72884
 	fmt.Println(part1(file))
-	// Part 2: < 16068009780
+	// Part 2: 15310845153
 	fmt.Println(part2(file))
 }
