@@ -8,7 +8,7 @@ import (
 	"github.com/jethridge13/AdventOfCode2022/util"
 )
 
-func printGridPart2(inp [][]string, snake [][]int) {
+func printGridPart2(inp [][]string, snake []Segment) {
 	grid := make([][]string, len(inp))
 	for i := range inp {
 		grid[i] = make([]string, len(inp[i]))
@@ -21,7 +21,7 @@ func printGridPart2(inp [][]string, snake [][]int) {
 		} else {
 			marker = strconv.Itoa(i)
 		}
-		grid[node[0]][node[1]] = marker
+		grid[node.pos[0]][node.pos[1]] = marker
 	}
 	fmt.Println("--- START ---")
 	for _, row := range grid {
@@ -88,7 +88,7 @@ func expandGrid(grid *[][]string, h []int, t []int) {
 	}
 }
 
-func expandGridTail(grid *[][]string, snake [][]int) {
+func expandGridTail(grid *[][]string, snake []Segment) {
 	// Add space above
 	topSize := len(*grid)
 	topGrid := makeGrid(topSize)
@@ -108,9 +108,12 @@ func expandGridTail(grid *[][]string, snake [][]int) {
 		blankRow := makeBlankRow(len(row))
 		(*grid)[i] = append(row, blankRow...)
 	}
-	for _, node := range snake {
-		node[0] += topSize
-		node[1] += leftSize
+	for i, node := range snake {
+		node.pos[0] += topSize
+		node.lastPos[0] += topSize
+		node.pos[1] += leftSize
+		node.lastPos[1] += leftSize
+		snake[i] = node
 	}
 }
 
@@ -167,100 +170,90 @@ func moveGrid(grid *[][]string, h []int, t []int, dir string, dis int) {
 	}
 }
 
-func upCheck(snake [][]int, head []int, i int) bool {
-	return snake[i][0]-head[0] > 1 || (snake[i][1] == head[1] && snake[i][0]-head[0] > 1)
+func upCheck(snake []Segment, head Segment, i int) bool {
+	return snake[i].pos[0]-head.pos[0] > 1 || (snake[i].pos[1] == head.pos[1] && snake[i].pos[0]-head.pos[0] > 1)
 }
 
-func leftCheck(snake [][]int, head []int, i int) bool {
-	return snake[i][1]-head[1] > 1 || (snake[i][0] == head[0] && snake[i][1]-head[1] > 1)
+func leftCheck(snake []Segment, head Segment, i int) bool {
+	return snake[i].pos[1]-head.pos[1] > 1 || (snake[i].pos[0] == head.pos[0] && snake[i].pos[1]-head.pos[1] > 1)
 }
 
-func downCheck(snake [][]int, head []int, i int) bool {
-	return head[0]-snake[i][0] > 1 || (snake[i][1] == head[1] && head[0]-snake[i][0] > 1)
+func downCheck(snake []Segment, head Segment, i int) bool {
+	return head.pos[0]-snake[i].pos[0] > 1 || (snake[i].pos[1] == head.pos[1] && head.pos[0]-snake[i].pos[0] > 1)
 }
 
-func rightCheck(snake [][]int, head []int, i int) bool {
-	return head[1]-snake[i][1] > 1 || (snake[i][0] == head[0] && head[1]-snake[i][1] > 1)
+func rightCheck(snake []Segment, head Segment, i int) bool {
+	return head.pos[1]-snake[i].pos[1] > 1 || (snake[i].pos[0] == head.pos[0] && head.pos[1]-snake[i].pos[1] > 1)
 }
 
-func moveGridTail(grid *[][]string, snake [][]int, dir string, dis int) {
+func moveGridTail(grid *[][]string, snake []Segment, dir string, dis int) {
 	// TODO The tail checking "works" but does not check diagonals in the same way as the prompt
 	moved := 0
 	for moved < dis {
 		switch dir {
 		case "U":
-			for snake[0][0]-dis < 0 {
+			for snake[0].pos[0]-dis < 0 {
 				expandGridTail(grid, snake)
 			}
-			snake[0][0] -= 1
+			snake[0].lastPos = snake[0].pos
+			snake[0].pos[0] -= 1
 			moved += 1
 		case "R":
-			for snake[0][1]+dis >= len(*grid) {
+			for snake[0].pos[1]+dis >= len(*grid) {
 				expandGridTail(grid, snake)
 			}
-			snake[0][1] += 1
+			snake[0].lastPos = snake[0].pos
+			snake[0].pos[1] += 1
 			moved += 1
 		case "D":
-			for snake[0][0]+dis >= len(*grid) {
+			for snake[0].pos[0]+dis >= len(*grid) {
 				expandGridTail(grid, snake)
 			}
-			snake[0][0] += 1
+			snake[0].lastPos = snake[0].pos
+			snake[0].pos[0] += 1
 			moved += 1
 		case "L":
-			for snake[0][1]-dis < 0 {
+			for snake[0].pos[1]-dis < 0 {
 				expandGridTail(grid, snake)
 			}
-			snake[0][1] -= 1
+			snake[0].lastPos = snake[0].pos
+			snake[0].pos[1] -= 1
 			moved += 1
 		}
 		// Catch up snake tail
 		for i := 1; i < len(snake); i++ {
 			head := snake[i-1]
+			// Check if tail is detached from head.
+			// If yes, move to last head position, then check again
 			// Check distance up, right, down, left
 			up := upCheck(snake, head, i)
 			left := leftCheck(snake, head, i)
 			down := downCheck(snake, head, i)
 			right := rightCheck(snake, head, i)
+			if up || left || down || right {
+				snake[i].lastPos = snake[i].pos
+				snake[i].pos = head.lastPos
+				up = upCheck(snake, head, i)
+				left = leftCheck(snake, head, i)
+				down = downCheck(snake, head, i)
+				right = rightCheck(snake, head, i)
+			}
 			for up || left || down || right {
 				if up {
-					snake[i][0] -= 1
+					snake[i].pos[0] -= 1
 					up = upCheck(snake, head, i)
-					// Diagonal
-					if snake[i][1] == head[1]+1 {
-						snake[i][1] -= 1
-					} else if snake[i][1] == head[1]-1 {
-						snake[i][1] += 1
-					}
 				}
 				if left {
-					snake[i][1] -= 1
+					snake[i].pos[1] -= 1
 					left = leftCheck(snake, head, i)
-					// Diagonal
-					if snake[i][0] == head[0]+1 {
-						snake[i][0] -= 1
-					} else if snake[i][1] == head[0]-1 {
-						snake[i][0] += 1
-					}
 				}
 				if down {
-					snake[i][0] += 1
+					snake[i].pos[0] += 1
 					down = downCheck(snake, head, i)
-					// Diagonal
-					if snake[i][1] == head[1]+1 {
-						snake[i][1] -= 1
-					} else if snake[i][1] == head[1]-1 {
-						snake[i][1] += 1
-					}
 				}
 				if right {
-					snake[i][1] += 1
+					snake[i].pos[1] += 1
 					right = rightCheck(snake, head, i)
-					// Diagonal
-					if snake[i][0] == head[0]+1 {
-						snake[i][0] -= 1
-					} else if snake[i][1] == head[0]-1 {
-						snake[i][0] += 1
-					}
 				}
 			}
 		}
@@ -283,14 +276,20 @@ func part1(path string) int {
 	return countPath(grid)
 }
 
+type Segment struct {
+	pos     [2]int
+	lastPos [2]int
+}
+
 func part2(path string) int {
 	scanner := util.GetFileScanner(path)
 	grid := makeGrid(2)
-	snake := make([][]int, 10)
+	snake := make([]Segment, 10)
 	for i := range snake {
-		snake[i] = []int{0, 0}
+		s := Segment{pos: [2]int{0, 0}}
+		snake[i] = s
 	}
-	grid[snake[9][0]][snake[9][1]] = "#"
+	grid[snake[9].pos[0]][snake[9].pos[1]] = "#"
 	for scanner.Scan() {
 		line := scanner.Text()
 		parts := strings.Fields(line)
