@@ -170,24 +170,7 @@ func moveGrid(grid *[][]string, h []int, t []int, dir string, dis int) {
 	}
 }
 
-func upCheck(snake []Segment, head Segment, i int) bool {
-	return snake[i].pos[0]-head.pos[0] > 1 || (snake[i].pos[1] == head.pos[1] && snake[i].pos[0]-head.pos[0] > 1)
-}
-
-func leftCheck(snake []Segment, head Segment, i int) bool {
-	return snake[i].pos[1]-head.pos[1] > 1 || (snake[i].pos[0] == head.pos[0] && snake[i].pos[1]-head.pos[1] > 1)
-}
-
-func downCheck(snake []Segment, head Segment, i int) bool {
-	return head.pos[0]-snake[i].pos[0] > 1 || (snake[i].pos[1] == head.pos[1] && head.pos[0]-snake[i].pos[0] > 1)
-}
-
-func rightCheck(snake []Segment, head Segment, i int) bool {
-	return head.pos[1]-snake[i].pos[1] > 1 || (snake[i].pos[0] == head.pos[0] && head.pos[1]-snake[i].pos[1] > 1)
-}
-
 func moveGridTail(grid *[][]string, snake []Segment, dir string, dis int) {
-	// TODO The tail checking "works" but does not check diagonals in the same way as the prompt
 	moved := 0
 	for moved < dis {
 		switch dir {
@@ -223,41 +206,37 @@ func moveGridTail(grid *[][]string, snake []Segment, dir string, dis int) {
 		// Catch up snake tail
 		for i := 1; i < len(snake); i++ {
 			head := snake[i-1]
-			// Check if tail is detached from head.
-			// If yes, move to last head position, then check again
-			// Check distance up, right, down, left
-			up := upCheck(snake, head, i)
-			left := leftCheck(snake, head, i)
-			down := downCheck(snake, head, i)
-			right := rightCheck(snake, head, i)
-			if up || left || down || right {
-				snake[i].lastPos = snake[i].pos
-				snake[i].pos = head.lastPos
-				up = upCheck(snake, head, i)
-				left = leftCheck(snake, head, i)
-				down = downCheck(snake, head, i)
-				right = rightCheck(snake, head, i)
-			}
-			for up || left || down || right {
-				if up {
-					snake[i].pos[0] -= 1
-					up = upCheck(snake, head, i)
-				}
-				if left {
-					snake[i].pos[1] -= 1
-					left = leftCheck(snake, head, i)
-				}
-				if down {
+			dx := head.pos[0] - snake[i].pos[0]
+			dy := head.pos[1] - snake[i].pos[1]
+			if util.Abs(dx) == 2 && dy == 0 {
+				if dx == 2 {
 					snake[i].pos[0] += 1
-					down = downCheck(snake, head, i)
+				} else {
+					snake[i].pos[0] -= 1
 				}
-				if right {
+			} else if util.Abs(dy) == 2 && dx == 0 {
+				if dy == 2 {
 					snake[i].pos[1] += 1
-					right = rightCheck(snake, head, i)
+				} else {
+					snake[i].pos[1] -= 1
 				}
+			} else if (dx == 1 && dy == 2) || (dy == 1 && dx == 2) || (dx == 2 && dy == 2) {
+				snake[i].pos[0] += 1
+				snake[i].pos[1] += 1
+			} else if (dx == 1 && dy == -2) || (dy == -1 && dx == 2) || (dx == 2 && dy == -2) {
+				snake[i].pos[0] += 1
+				snake[i].pos[1] -= 1
+			} else if (dx == -1 && dy == 2) || (dy == 1 && dx == -2) || (dx == -2 && dy == 2) {
+				snake[i].pos[0] -= 1
+				snake[i].pos[1] += 1
+			} else if (dx == -1 && dy == -2) || (dy == -1 && dx == -2) || (dx == -2 && dy == -2) {
+				snake[i].pos[0] -= 1
+				snake[i].pos[1] -= 1
+			}
+			if i == len(snake)-1 {
+				(*grid)[snake[i].pos[0]][snake[i].pos[1]] = "#"
 			}
 		}
-		printGridPart2(*grid, snake)
 	}
 }
 
@@ -296,15 +275,14 @@ func part2(path string) int {
 		dir := parts[0]
 		dis, _ := strconv.Atoi(parts[1])
 		moveGridTail(&grid, snake, dir, dis)
-		printGridPart2(grid, snake)
 	}
 	return countPath(grid)
 }
 
 func main() {
-	file := "example.txt"
+	file := "input.txt"
 	// Part 1: 6266
 	fmt.Println(part1(file))
-	// Part 2:
+	// Part 2: 2369
 	fmt.Println(part2(file))
 }
