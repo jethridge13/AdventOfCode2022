@@ -1,8 +1,9 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
-	"strconv"
+	"sort"
 
 	"github.com/jethridge13/AdventOfCode2022/util"
 )
@@ -13,120 +14,90 @@ type Signal struct {
 	t      string
 }
 
-func generatePairs(path string) [][2]string {
+func generatePairs(path string) [][2]any {
+	packets := make([][2]any, 0)
 	scanner := util.GetFileScanner(path)
-	pairs := make([][2]string, 0)
-	pair := [2]string{"", ""}
+	newPacket := [2]any{true, true}
 	for scanner.Scan() {
 		line := scanner.Text()
 		if len(line) == 0 {
 			continue
 		}
-		if pair[0] == "" {
-			pair[0] = line
+		var unwrapped any
+		json.Unmarshal([]byte(line), &unwrapped)
+		if newPacket[0] == true {
+			newPacket[0] = unwrapped
 		} else {
-			pair[1] = line
-			pairs = append(pairs, pair)
-			pair = [2]string{"", ""}
+			newPacket[1] = unwrapped
+			packets = append(packets, newPacket)
+			newPacket = [2]any{true, true}
 		}
 	}
-	return pairs
+	return packets
 }
 
-func getTypedList(line string) ([]Signal, int) {
-	signal := Signal{t: "list"}
-	l := make([]Signal, 0)
-	digit := make([]byte, 0)
-	i := 0
-	for i < len(line) {
-		c := line[i]
-		s := string(c)
-		if s == "[" {
-			subL, newI := getTypedList(line[i+1:])
-			signal.list = subL
-			l = append(l, signal)
-			signal = Signal{t: "list"}
-			i += newI
-		} else if s == "]" {
-			if len(digit) > 0 {
-				d, err := strconv.Atoi(string(digit))
-				if err != nil {
-					panic(err)
-				}
-				digitSignal := Signal{t: "int", number: d}
-				l = append(l, digitSignal)
-			}
-			return l, i + 1
-		} else if s == "," {
-			if len(digit) > 0 {
-				d, err := strconv.Atoi(string(digit))
-				if err != nil {
-					panic(err)
-				}
-				digitSignal := Signal{t: "int", number: d}
-				l = append(l, digitSignal)
-				digit = make([]byte, 0)
-			}
-		} else {
-			digit = append(digit, c)
-		}
-		i += 1
+func isValidPair(left, right any) int {
+	var left1, right1 []any
+	leftGood, rightGood := false, false
+	switch left.(type) {
+	case float64:
+		left1, leftGood = []any{left}, true
+	case []any, []float64:
+		left1 = left.([]any)
 	}
-	return l, len(line)
-}
-
-func isValidPair(pair [2][]Signal) bool {
-	count := 0
-	for i := range pair[0] {
-		count += 1
-		if i >= len(pair[1]) {
-			return false
-		}
-		if pair[0][i].t == "list" || pair[1][i].t == "list" {
-			var l1 []Signal
-			var l2 []Signal
-			// If one is not a list, convert it to a list of length 1 and check
-			if pair[0][i].t == "list" {
-				l1 = pair[0][i].list
-			} else {
-				l1 = make([]Signal, 1)
-				l1[0] = pair[0][i]
-			}
-			if pair[1][i].t == "list" {
-				l2 = pair[1][i].list
-			} else {
-				l2 = make([]Signal, 1)
-				l2[0] = pair[1][i]
-			}
-			newPair := [2][]Signal{l1, l2}
-			return isValidPair(newPair)
-		} else {
-			if pair[0][i].number <= pair[1][i].number {
-				continue
-			}
-			return false
+	switch right.(type) {
+	case float64:
+		right1, rightGood = []any{right}, true
+	case []any, []float64:
+		right1 = right.([]any)
+	}
+	if leftGood && rightGood {
+		return int(left1[0].(float64) - right1[0].(float64))
+	}
+	for i := 0; i < len(left1) && i < len(right1); i++ {
+		if c := isValidPair(left1[i], right1[i]); c != 0 {
+			return c
 		}
 	}
-	return true
+	return len(left1) - len(right1)
 }
 
 func part1(path string) int {
 	count := 0
 	pairs := generatePairs(path)
 	for i, pair := range pairs {
-		typedPair := [2][]Signal{make([]Signal, 0), make([]Signal, 0)}
-		typedPair[0], _ = getTypedList(pair[0])
-		typedPair[1], _ = getTypedList(pair[1])
-		if isValidPair(typedPair) {
+		if isValidPair(pair[0], pair[1]) <= 0 {
 			count += i + 1
 		}
 	}
 	return count
 }
 
+func part2(path string) int {
+	pairs := generatePairs(path)
+	lines := make([]any, 0)
+	for _, pair := range pairs {
+		lines = append(lines, pair[0], pair[1])
+	}
+	lines = append(lines, []any{[]any{2.0}}, []any{[]any{6.0}})
+	sort.Slice(lines, func(i, j int) bool {
+		return isValidPair(lines[i], lines[j]) < 0
+	})
+	first, second := 0, 0
+	for i, line := range lines {
+		if fmt.Sprint(line) == "[[2]]" {
+			first = i + 1
+		} else if fmt.Sprint(line) == "[[6]]" {
+			second = i + 1
+		}
+	}
+	return first * second
+}
+
 func main() {
 	file := "input.txt"
-	// Part 1: 4714 < x < 5539
+	// Part 1: 5185
 	fmt.Println(part1(file))
-	// Part 2:
+	// Part 2: 23751
+	fmt.Println(part2(file))
 }
