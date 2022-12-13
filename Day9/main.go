@@ -225,18 +225,42 @@ func moveGridTail(grid *[][]string, snake [][]int, dir string, dis int) {
 				if up {
 					snake[i][0] -= 1
 					up = upCheck(snake, head, i)
+					// Diagonal
+					if snake[i][1] == head[1]+1 {
+						snake[i][1] -= 1
+					} else if snake[i][1] == head[1]-1 {
+						snake[i][1] += 1
+					}
 				}
 				if left {
 					snake[i][1] -= 1
 					left = leftCheck(snake, head, i)
+					// Diagonal
+					if snake[i][0] == head[0]+1 {
+						snake[i][0] -= 1
+					} else if snake[i][1] == head[0]-1 {
+						snake[i][0] += 1
+					}
 				}
 				if down {
 					snake[i][0] += 1
 					down = downCheck(snake, head, i)
+					// Diagonal
+					if snake[i][1] == head[1]+1 {
+						snake[i][1] -= 1
+					} else if snake[i][1] == head[1]-1 {
+						snake[i][1] += 1
+					}
 				}
 				if right {
 					snake[i][1] += 1
 					right = rightCheck(snake, head, i)
+					// Diagonal
+					if snake[i][0] == head[0]+1 {
+						snake[i][0] -= 1
+					} else if snake[i][1] == head[0]-1 {
+						snake[i][0] += 1
+					}
 				}
 			}
 		}
