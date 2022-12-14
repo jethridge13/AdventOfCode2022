@@ -9,7 +9,7 @@
             "type": "go",
             "request": "launch",
             "mode": "auto",
-            "program": "Day13/main.go"
+            "program": "Day14/main.go"
         }
     ]
 }
