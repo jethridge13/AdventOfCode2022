@@ -82,8 +82,89 @@ func getStartingGraph() [][7]string {
 
 func getSequence(path string) []string {
 	scanner := util.GetFileScanner(path)
-	line := scanner.Text()
-	return strings.Split(line, "")
+	if scanner.Scan() {
+		line := scanner.Text()
+		return strings.Split(line, "")
+	}
+	panic("Bad input")
+}
+
+func moveRight(graph [][7]string, l, r, down, height int) bool {
+	// Check if move is possible first
+	if r >= len(graph[0])-1 {
+		return false
+	}
+	for i := down; i >= down-height+1; i-- {
+		if graph[i][r] == "@" && graph[i][r+1] != "." {
+			return false
+		}
+	}
+	// Move rock
+	for i := down; i >= down-height+1; i-- {
+		for j := r; j >= l; j-- {
+			graph[i][j+1] = graph[i][j]
+			graph[i][j] = "."
+		}
+	}
+	return true
+}
+
+func moveLeft(graph [][7]string, l, r, down, height int) bool {
+	// Check if move is possible first
+	if l <= 0 {
+		return false
+	}
+	for i := down; i >= down-height+1; i-- {
+		if graph[i][r] == "@" && graph[i][l-1] != "." {
+			return false
+		}
+	}
+	// Move rock
+	for i := down; i >= down-height+1; i-- {
+		for j := l; j <= r; j++ {
+			graph[i][j-1] = graph[i][j]
+			graph[i][j] = "."
+		}
+	}
+	return true
+}
+
+func solidifyRock(graph [][7]string, l, r, down int) {
+	// Maximum block height is 4
+	for i := down - 3; i <= down; i++ {
+		if i < 0 {
+			continue
+		}
+		for j := l; j <= r; j++ {
+			if graph[i][j] == "@" {
+				graph[i][j] = "#"
+			}
+		}
+	}
+}
+
+func moveDown(graph [][7]string, l, r, down int) bool {
+	// Test for collision
+	if down == len(graph)-1 {
+		solidifyRock(graph, l, r, down)
+		return false
+	}
+	for i := l; i <= r; i++ {
+		if graph[down][i] == "@" && graph[down+1][i] == "#" {
+			solidifyRock(graph, l, r, down)
+			return false
+		}
+	}
+	// Move down
+	for i := down; i < down+4 && i >= 0; i-- {
+		for j := l; j <= r; j++ {
+			if graph[i][j] == "@" {
+				graph[i+1][j] = "@"
+				graph[i][j] = "."
+			}
+		}
+	}
+	return true
 }
 
 func part1(path string) int {
@@ -93,8 +174,9 @@ func part1(path string) int {
 	for i := 0; i < 2023; i++ {
 		shape := getShape(i)
 		graph = append(shape.shape, graph...)
-		l := 3
-		r := l + shape.w
+		l := 2
+		r := l + shape.w - 1
+		down := 0 + shape.h - 1
 		for {
 			// Push rock
 			move := sequence[si]
@@ -104,24 +186,54 @@ func part1(path string) int {
 			}
 			// Check boundary of tunnel, then check for any settled rocks, then move
 			if move == ">" {
-				if r < len(graph[0]) {
-
+				if moveRight(graph, l, r, down, shape.h) {
+					l += 1
+					r += 1
 				}
 			} else {
-				if l > 0 {
-
+				if moveLeft(graph, l, r, down, shape.h) {
+					l -= 1
+					r -= 1
 				}
 			}
 			// Drop rock
-
+			if !moveDown(graph, l, r, down) {
+				break
+			} else {
+				down += 1
+			}
+		}
+		// Add clear space to top of graph
+		spaceToAdd := 3
+		foundTop := false
+		for j := 0; !foundTop; j++ {
+			for k := 0; k < len(graph[j]); k++ {
+				if graph[j][k] != "." {
+					foundTop = true
+					break
+				}
+			}
+			if !foundTop {
+				spaceToAdd -= 1
+			}
+		}
+		if spaceToAdd > 0 {
+			space := [][7]string{}
+			for j := 0; j < spaceToAdd; j++ {
+				space = append(space, [7]string{".", ".", ".", ".", ".", ".", "."})
+			}
+			graph = append(space, graph...)
+		} else if spaceToAdd < 0 {
+			index := spaceToAdd * -1
+			graph = graph[index:]
 		}
 	}
-	return 0
+	return len(graph) - 3
 }
 
 func main() {
 	file := "example.txt"
-	// Part 1:
+	// Part 1: >3033
 	fmt.Println(part1(file))
 	// Part 2:
 }
